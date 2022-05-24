@@ -1,0 +1,414 @@
+{
+	"info": {
+		"_postman_id": "a56609fd-3333-4942-8f4e-d8c1efffc0cc",
+		"name": "API Task Manager",
+		"description": "Это приложение позволяет добавлять задачи, привязывать их к пользователям.\n\nЗадача состоит из:\n\n*   сообщения **message** (обязательное поле)\n*   изображения **image** (необязательное поле)\n*   статуса **status** (по умолчанию не завершено - **false**)\n*   приоритета **priority** (не обязательное поле, по умолчанию **medium**)\n    \n\nАвторизованный пользователь может добавлять, изменять, удалять задачу.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "17886459"
+	},
+	"item": [
+		{
+			"name": "Неавторизованный пользователь",
+			"item": [
+				{
+					"name": "Посмотреть задачи",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{localhost}}/tasks?populate=image",
+							"host": [
+								"{{localhost}}"
+							],
+							"path": [
+								"tasks"
+							],
+							"query": [
+								{
+									"key": "populate",
+									"value": "*",
+									"disabled": true
+								},
+								{
+									"key": "populate",
+									"value": "image"
+								},
+								{
+									"key": "populate",
+									"value": "users_permissions_user",
+									"description": "но бэк не вернет неавторизованному пользователю",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Неавторизованный пользователь может просто посмотреть список задач и больше ничего не может"
+		},
+		{
+			"name": "Авторизованный пользователь",
+			"item": [
+				{
+					"name": "Войти и зарегистрироваться",
+					"item": [
+						{
+							"name": "Авторизация пользователя",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Have jwt token?\", function () {\r",
+											"    var jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData.jwt).to.not.empty;\r",
+											"});\r",
+											"pm.test(\"Have profile data?\", function () {\r",
+											"    var jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData.user).to.not.empty;\r",
+											"});\r",
+											"pm.test(\"Save token to global\", function () {\r",
+											"    var jsonData = pm.response.json();\r",
+											"    pm.expect(jsonData.user).to.not.empty;\r",
+											"\r",
+											"    pm.globals.set(\"jwt\", jsonData.jwt);\r",
+											"    pm.globals.set(\"user_id\", jsonData.user.id)\r",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"identifier\":\"developer\",\r\n    \"password\":\"developer\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{localhost}}/auth/local",
+									"host": [
+										"{{localhost}}"
+									],
+									"path": [
+										"auth",
+										"local"
+									]
+								},
+								"description": "Чтобы получить токен и **id** пользователя, необходимо обратиться к **response** ответу:\n\n*   токен **response.json().jwt**\n*   **id** пользователя **response.json().id**\n    \n\nEndFrag"
+							},
+							"response": []
+						},
+						{
+							"name": "Регистрация пользователя",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"reguser2\",\r\n    \"email\":\"reguser@reguser2.com\",\r\n    \"password\":\"reguserpwd\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{localhost}}/auth/local/register",
+									"host": [
+										"{{localhost}}"
+									],
+									"path": [
+										"auth",
+										"local",
+										"register"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Работа с контентом",
+					"item": [
+						{
+							"name": "Создать задачу",
+							"item": [
+								{
+									"name": "Загрузка файла",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"exec": [
+													"pm.test(\"Body matches string\", function () {\r",
+													"    var json = pm.response.json()\r",
+													"    pm.globals.set(\"img_id\", json[0].id);\r",
+													"});\r",
+													""
+												],
+												"type": "text/javascript"
+											}
+										}
+									],
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{jwt}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "formdata",
+											"formdata": [
+												{
+													"key": "files",
+													"type": "file",
+													"src": "/C:/Users/User/Desktop/1111.jpg"
+												}
+											]
+										},
+										"url": {
+											"raw": "{{localhost}}/upload",
+											"host": [
+												"{{localhost}}"
+											],
+											"path": [
+												"upload"
+											]
+										},
+										"description": "Тело запроса **body** необходимо передавать в формате **form-data**.\n\nКлюч **key : files** и **value : <файл изображения>**.\n\nЧтобы получить **id** добавленного файла в ответе response в формате **json** получаем первый элемент массива и обращаемся к **id - response.json()\\[0\\].id**."
+									},
+									"response": []
+								},
+								{
+									"name": "Создать задачу",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{jwt}}",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"data\":{\n        \"message\": \"new todo\",\n        \"completed\": \"false\",\n        \"image\":{\n            \"id\":{{img_id}}\n        },\n        \"users_permissions_user\": {\n                    \"id\": {{user_id}}\n                }\n    }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{localhost}}/tasks",
+											"host": [
+												"{{localhost}}"
+											],
+											"path": [
+												"tasks"
+											]
+										}
+									},
+									"response": []
+								}
+							],
+							"description": "Если необходимо прикрепить картинку к задаче - сначала загружаем файл и получаем присвоенный ему **id** методом **upload**\n\nДалее отправляем **post** запрос с указанием **id** загруженной картинки"
+						},
+						{
+							"name": "Просмотр задач",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{localhost}}/tasks?populate=image&populate=users_permissions_users",
+									"host": [
+										"{{localhost}}"
+									],
+									"path": [
+										"tasks"
+									],
+									"query": [
+										{
+											"key": "populate",
+											"value": "*",
+											"description": "посмотреть вообще все",
+											"disabled": true
+										},
+										{
+											"key": "populate",
+											"value": "image",
+											"description": "посмотреть с изображениями"
+										},
+										{
+											"key": "populate",
+											"value": "users_permissions_users",
+											"description": "посмотреть с пользователями"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Обновить задачу",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"data\":{\r\n        \"message\":\"up test\",\r\n        \"state\":\"true\"\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{localhost}}/tasks/3",
+									"host": [
+										"{{localhost}}"
+									],
+									"path": [
+										"tasks",
+										"3"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Удалить задачу",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{localhost}}/tasks/10",
+									"host": [
+										"{{localhost}}"
+									],
+									"path": [
+										"tasks",
+										"10"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Посмотреть одну задачу по id",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{localhost}}/tasks/2",
+									"host": [
+										"{{localhost}}"
+									],
+									"path": [
+										"tasks",
+										"2"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Информация о пользователях",
+					"item": [
+						{
+							"name": "Посмотреть пользователей",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{localhost}}/users",
+									"host": [
+										"{{localhost}}"
+									],
+									"path": [
+										"users"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Админимстратор",
+			"item": [
+				{
+					"name": "New Request",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{localhost}}/users/4",
+							"host": [
+								"{{localhost}}"
+							],
+							"path": [
+								"users",
+								"4"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Может все тоже, что и обычный авторизованный пользователь.\n\nНапример удалить пользователя."
+		}
+	]
+}

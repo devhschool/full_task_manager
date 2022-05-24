@@ -2,8 +2,10 @@
 Подробная документация по использованию BACK, FRONT, POSTMAN расположена в директориях
 ## BACK 
 В папке лежит проект на strapi
-<a src="https://docs.strapi.io/developer-docs/latest/getting-started/introduction.html">Официальная документация</a></br>
+[Официальная документация](https://docs.strapi.io/developer-docs/latest/getting-started/introduction.html)
+</br>
 Тут лежит бэкенд примера.
+</br>
 Чтобы успешно его запустить выполните следующие манипуляции:
 1. Создайте свой проект</br>
 `npx create-strapi-app@latest my-project --quickstart`
